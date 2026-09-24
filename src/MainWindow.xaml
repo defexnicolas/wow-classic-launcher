@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Classic Forever" Width="980" Height="600"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        FontFamily="Segoe UI" Foreground="#EDE6D6">
+  <Window.Resources>
+    <SolidColorBrush x:Key="Gold" Color="#E8C46A"/>
+    <SolidColorBrush x:Key="Dim" Color="#9C9480"/>
+    <SolidColorBrush x:Key="Card" Color="#B80B0C16"/>
+    <SolidColorBrush x:Key="CardLine" Color="#33E8C46A"/>
+
+    <Style x:Key="PlayButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="#2A1A06"/>
+      <Setter Property="FontFamily" Value="Palatino Linotype"/>
+      <Setter Property="FontSize" Value="24"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Grid>
+              <Border x:Name="Glow" CornerRadius="6" Margin="-4" Opacity="0.0">
+                <Border.Background>
+                  <RadialGradientBrush>
+                    <GradientStop Color="#80F5D27A" Offset="0.4"/>
+                    <GradientStop Color="#00F5D27A" Offset="1"/>
+                  </RadialGradientBrush>
+                </Border.Background>
+              </Border>
+              <Border x:Name="Face" CornerRadius="5" BorderThickness="1" BorderBrush="#FFF7E3A6">
+                <Border.Background>
+                  <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#FFF6DA8C" Offset="0"/>
+                    <GradientStop Color="#FFD9A441" Offset="0.5"/>
+                    <GradientStop Color="#FFA8721E" Offset="1"/>
+                  </LinearGradientBrush>
+                </Border.Background>
+                <Border.Effect>
+                  <DropShadowEffect BlurRadius="18" ShadowDepth="0" Color="#E8B24A" Opacity="0.45"/>
+                </Border.Effect>
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Glow" Property="Opacity" Value="1"/>
+                <Setter TargetName="Face" Property="BorderBrush" Value="#FFFFF4CF"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Face" Property="RenderTransform">
+                  <Setter.Value><TranslateTransform Y="1"/></Setter.Value>
+                </Setter>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Face" Property="Opacity" Value="0.45"/>
+                <Setter Property="Cursor" Value="Arrow"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="FlatButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="#B8AF98"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="B" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="3">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="B" Property="Background" Value="#22FFFFFF"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="B" Background="Transparent" Padding="{TemplateBinding Padding}" CornerRadius="3">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="B" Property="Background" Value="#CCB0302A"/>
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="LinkButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="#E8C46A"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <TextBlock x:Name="T" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"/>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="T" Property="TextDecorations" Value="Underline"/>
+                <Setter TargetName="T" Property="Foreground" Value="#FFF1D28A"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="PillButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="#EDE6D6"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="Margin" Value="0,0,8,8"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="B" CornerRadius="14" Padding="14,5" Background="#40000000" BorderThickness="1" BorderBrush="#44E8C46A">
+              <ContentPresenter/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="B" Property="BorderBrush" Value="#CCE8C46A"/>
+                <Setter TargetName="B" Property="Background" Value="#30E8C46A"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
+  <Border CornerRadius="10" BorderThickness="1" BorderBrush="#55E8C46A" ClipToBounds="True">
+    <Border.Background>
+      <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FF070913" Offset="0"/>
+        <GradientStop Color="#FF121634" Offset="0.38"/>
+        <GradientStop Color="#FF3A2440" Offset="0.56"/>
+        <GradientStop Color="#FF6B3A2C" Offset="0.64"/>
+        <GradientStop Color="#FF0A0B16" Offset="0.8"/>
+      </LinearGradientBrush>
+    </Border.Background>
+    <Grid x:Name="Root">
+      <Grid.Clip>
+        <RectangleGeometry Rect="0,0,978,598" RadiusX="10" RadiusY="10"/>
+      </Grid.Clip>
+
+      <!-- Escena: estrellas, luna, cordilleras (todo vectorial, sin arte de terceros) -->
+      <Canvas x:Name="Scene" IsHitTestVisible="False">
+        <Canvas x:Name="Stars"/>
+        <Ellipse Canvas.Left="380" Canvas.Top="-90" Width="360" Height="360">
+          <Ellipse.Fill>
+            <RadialGradientBrush>
+              <GradientStop Color="#40F3DFA8" Offset="0"/>
+              <GradientStop Color="#10F3DFA8" Offset="0.45"/>
+              <GradientStop Color="#00F3DFA8" Offset="1"/>
+            </RadialGradientBrush>
+          </Ellipse.Fill>
+        </Ellipse>
+        <Ellipse Canvas.Left="520" Canvas.Top="50" Width="80" Height="80">
+          <Ellipse.Fill>
+            <RadialGradientBrush GradientOrigin="0.35,0.35">
+              <GradientStop Color="#FFFFF9E6" Offset="0"/>
+              <GradientStop Color="#FFEBDCAE" Offset="0.8"/>
+              <GradientStop Color="#FFD2BF8A" Offset="1"/>
+            </RadialGradientBrush>
+          </Ellipse.Fill>
+          <Ellipse.Effect><DropShadowEffect BlurRadius="40" ShadowDepth="0" Color="#F3DFA8" Opacity="0.8"/></Ellipse.Effect>
+        </Ellipse>
+        <Ellipse Canvas.Left="542" Canvas.Top="68" Width="16" Height="12" Fill="#1FB9A57A"/>
+        <Ellipse Canvas.Left="568" Canvas.Top="92" Width="11" Height="9" Fill="#1AB9A57A"/>
+
+        <Ellipse Canvas.Left="-100" Canvas.Top="180" Width="1180" Height="260">
+          <Ellipse.Fill>
+            <RadialGradientBrush>
+              <GradientStop Color="#55D0784A" Offset="0"/>
+              <GradientStop Color="#00D0784A" Offset="1"/>
+            </RadialGradientBrush>
+          </Ellipse.Fill>
+        </Ellipse>
+        <Path Fill="#FF3D2F59" Data="M0,372 L70,338 L128,352 L196,300 L254,326 L318,276 L372,306 L446,262 L520,300 L596,248 L656,286 L728,258 L798,296 L866,266 L978,308 L978,600 L0,600 Z"/>
+        <Path Fill="#FF252247" Data="M0,420 L86,378 L150,398 L232,346 L300,386 L378,356 L468,404 L558,366 L640,398 L722,336 L806,384 L884,356 L978,392 L978,600 L0,600 Z">
+          <Path.Effect><DropShadowEffect BlurRadius="30" ShadowDepth="0" Color="#000000" Opacity="0.6"/></Path.Effect>
+        </Path>
+        <Path Fill="#FF0F0F20" Data="M0,470 Q120,428 240,458 T480,448 T720,468 T978,440 L978,600 L0,600 Z"/>
+        <Rectangle Width="978" Height="600">
+          <Rectangle.Fill>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+              <GradientStop Color="#99050610" Offset="0"/>
+              <GradientStop Color="#40050610" Offset="0.4"/>
+              <GradientStop Color="#00050610" Offset="0.75"/>
+            </LinearGradientBrush>
+          </Rectangle.Fill>
+        </Rectangle>
+      </Canvas>
+
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="46"/>
+          <RowDefinition Height="*"/>
+          <RowDefinition Height="104"/>
+        </Grid.RowDefinitions>
+
+        <!-- Barra superior (arrastrable) -->
+        <Grid x:Name="TitleBar" Grid.Row="0" Background="Transparent">
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="18,0,0,0">
+            <Path Width="16" Height="16" Stretch="Uniform" Fill="{StaticResource Gold}" Data="M8,0 L16,8 L8,16 L0,8 Z M8,4 L4,8 L8,12 L12,8 Z"/>
+            <TextBlock Text="CLASSIC FOREVER" Margin="10,0,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#C9BFA6" VerticalAlignment="Center"/>
+            <TextBlock x:Name="VersionText" Text="launcher" Margin="10,0,0,0" FontSize="11" Foreground="#6F6857" VerticalAlignment="Center"/>
+          </StackPanel>
+          <Border x:Name="UpdateBanner" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"
+                  CornerRadius="12" Padding="12,4" Background="#AA3A2A08" BorderBrush="#88E8C46A" BorderThickness="1">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock x:Name="UpdateText" Text="Hay una versión nueva del launcher" FontSize="12" VerticalAlignment="Center"/>
+              <Button x:Name="UpdateLink" Style="{StaticResource LinkButton}" Content="Descargar" Margin="10,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Border>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="MinButton" Style="{StaticResource FlatButton}" Width="46" Height="46" Content="—" FontSize="12"/>
+            <Button x:Name="CloseButton" Style="{StaticResource CloseButton}" Width="46" Height="46" Content="✕" FontSize="13"/>
+          </StackPanel>
+        </Grid>
+
+        <!-- Contenido -->
+        <Grid Grid.Row="1" Margin="44,6,28,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="330"/>
+          </Grid.ColumnDefinitions>
+
+          <StackPanel Grid.Column="0" Margin="0,4,30,0">
+            <TextBlock Text="Classic Forever" FontFamily="Palatino Linotype" FontSize="58" FontWeight="Bold">
+              <TextBlock.Foreground>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                  <GradientStop Color="#FFFFF3CC" Offset="0"/>
+                  <GradientStop Color="#FFE8C46A" Offset="0.55"/>
+                  <GradientStop Color="#FFB07A26" Offset="1"/>
+                </LinearGradientBrush>
+              </TextBlock.Foreground>
+              <TextBlock.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="2" Color="#000000" Opacity="0.85"/></TextBlock.Effect>
+            </TextBlock>
+            <TextBlock Text="Servidor para el cliente beta 1.60.1" FontSize="15" Foreground="#CFC6AE" Margin="4,-2,0,0">
+              <TextBlock.Effect><DropShadowEffect BlurRadius="6" ShadowDepth="1" Color="#000000" Opacity="0.9"/></TextBlock.Effect>
+            </TextBlock>
+
+            <!-- Estado -->
+            <Border Margin="0,30,0,0" Width="380" HorizontalAlignment="Left" CornerRadius="8" Padding="20,16"
+                    Background="{StaticResource Card}" BorderBrush="{StaticResource CardLine}" BorderThickness="1">
+              <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                  <Grid Width="14" Height="14" VerticalAlignment="Center">
+                    <Ellipse x:Name="StatusHalo" Width="14" Height="14" Fill="#8A8A8A" Opacity="0.35" RenderTransformOrigin="0.5,0.5">
+                      <Ellipse.RenderTransform><ScaleTransform x:Name="HaloScale"/></Ellipse.RenderTransform>
+                    </Ellipse>
+                    <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#8A8A8A"/>
+                  </Grid>
+                  <TextBlock x:Name="StatusText" Text="COMPROBANDO…" Margin="12,0,0,0" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock x:Name="PlayersText" Text=" " Margin="26,6,0,0" FontSize="14" Foreground="#D8CFB8"/>
+                <StackPanel Orientation="Horizontal" Margin="26,10,0,0">
+                  <Ellipse x:Name="LoginDot" Width="7" Height="7" Fill="#555" VerticalAlignment="Center"/>
+                  <TextBlock Text="Login" Margin="6,0,16,0" FontSize="12" Foreground="{StaticResource Dim}"/>
+                  <Ellipse x:Name="WorldDot" Width="7" Height="7" Fill="#555" VerticalAlignment="Center"/>
+                  <TextBlock Text="Mundo" Margin="6,0,16,0" FontSize="12" Foreground="{StaticResource Dim}"/>
+                  <TextBlock x:Name="PingText" Text="" FontSize="12" Foreground="{StaticResource Dim}"/>
+                </StackPanel>
+                <TextBlock x:Name="MessageText" Visibility="Collapsed" Margin="26,12,0,0" FontSize="13" TextWrapping="Wrap" Foreground="{StaticResource Gold}"/>
+              </StackPanel>
+            </Border>
+
+            <WrapPanel x:Name="LinksPanel" Margin="0,18,0,0"/>
+          </StackPanel>
+
+          <!-- Novedades -->
+          <Border Grid.Column="1" CornerRadius="8" Padding="20,16" Margin="0,4,0,18"
+                  Background="{StaticResource Card}" BorderBrush="{StaticResource CardLine}" BorderThickness="1">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Top" Text="NOVEDADES" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Gold}" Margin="0,0,0,10"/>
+              <ScrollViewer VerticalScrollBarVisibility="Hidden">
+                <StackPanel x:Name="NewsList">
+                  <TextBlock Text="Cargando…" Foreground="{StaticResource Dim}" FontSize="13"/>
+                </StackPanel>
+              </ScrollViewer>
+            </DockPanel>
+          </Border>
+        </Grid>
+
+        <!-- Barra inferior -->
+        <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="#26E8C46A">
+          <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+              <GradientStop Color="#D0070812" Offset="0"/>
+              <GradientStop Color="#F0040509" Offset="1"/>
+            </LinearGradientBrush>
+          </Border.Background>
+          <Grid Margin="44,0,28,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="250"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+              <TextBlock x:Name="StepText" Text="Listo para jugar." FontSize="15" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="42"/>
+              <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <TextBlock x:Name="ClientText" Text="" FontSize="12" Foreground="{StaticResource Dim}" VerticalAlignment="Center"/>
+                <TextBlock x:Name="FolderText" Text="" FontSize="12" Foreground="#6F6857" Margin="10,0,0,0" MaxWidth="340" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                <Button x:Name="FolderButton" Style="{StaticResource LinkButton}" Content="Cambiar carpeta" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                <Button x:Name="LogButton" Style="{StaticResource LinkButton}" Content="Ver registro" Margin="12,0,0,0" VerticalAlignment="Center"/>
+              </StackPanel>
+            </StackPanel>
+            <Button x:Name="PlayButton" Grid.Column="1" Style="{StaticResource PlayButton}" Height="58" Content="JUGAR" VerticalAlignment="Center"/>
+          </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

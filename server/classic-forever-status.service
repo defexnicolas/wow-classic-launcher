@@ -1,0 +1,18 @@
+# Servicio de usuario (systemd) que publica status.json cada minuto.
+#   cp server/classic-forever-status.service ~/.config/systemd/user/
+#   mkdir -p ~/.config/classic-forever && printf 'STATUS_MYSQL_USER=...\nSTATUS_MYSQL_PASSWORD=...\n' > ~/.config/classic-forever/status.env
+#   systemctl --user daemon-reload && systemctl --user enable --now classic-forever-status
+#   loginctl enable-linger $USER     # para que corra sin sesion abierta
+[Unit]
+Description=Classic Forever: publica status.json para el launcher
+After=network-online.target
+
+[Service]
+EnvironmentFile=%h/.config/classic-forever/status.env
+WorkingDirectory=%h/wow-classic-launcher
+ExecStart=/usr/bin/python3 %h/wow-classic-launcher/server/publish_status.py --loop
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target
