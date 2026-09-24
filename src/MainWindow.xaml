@@ -123,6 +123,28 @@
       </Setter>
     </Style>
 
+    <Style x:Key="LangButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="#8F8773"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="10" Padding="9,0" MinWidth="32">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <Style x:Key="PillButton" TargetType="Button">
       <Setter Property="Cursor" Value="Hand"/>
       <Setter Property="Foreground" Value="#EDE6D6"/>
@@ -228,10 +250,16 @@
                   CornerRadius="12" Padding="12,4" Background="#AA3A2A08" BorderBrush="#88E8C46A" BorderThickness="1">
             <StackPanel Orientation="Horizontal">
               <TextBlock x:Name="UpdateText" Text="Hay una versión nueva del launcher" FontSize="12" VerticalAlignment="Center"/>
-              <Button x:Name="UpdateLink" Style="{StaticResource LinkButton}" Content="Descargar" Margin="10,0,0,0" VerticalAlignment="Center"/>
+              <Button x:Name="UpdateLink" Style="{StaticResource LinkButton}" Content=" " Margin="10,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
           </Border>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Border CornerRadius="11" BorderThickness="1" BorderBrush="#44E8C46A" Background="#40000000" Height="22" Margin="0,0,10,0" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal">
+                <Button x:Name="LangEs" Style="{StaticResource LangButton}" Content="ES" ToolTip="Español"/>
+                <Button x:Name="LangEn" Style="{StaticResource LangButton}" Content="EN" ToolTip="English"/>
+              </StackPanel>
+            </Border>
             <Button x:Name="MinButton" Style="{StaticResource FlatButton}" Width="46" Height="46" Content="—" FontSize="12"/>
             <Button x:Name="CloseButton" Style="{StaticResource CloseButton}" Width="46" Height="46" Content="✕" FontSize="13"/>
           </StackPanel>
@@ -255,7 +283,7 @@
               </TextBlock.Foreground>
               <TextBlock.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="2" Color="#000000" Opacity="0.85"/></TextBlock.Effect>
             </TextBlock>
-            <TextBlock Text="Servidor para el cliente beta 1.60.1" FontSize="15" Foreground="#CFC6AE" Margin="4,-2,0,0">
+            <TextBlock x:Name="SubtitleText" Text=" " FontSize="15" Foreground="#CFC6AE" Margin="4,-2,0,0">
               <TextBlock.Effect><DropShadowEffect BlurRadius="6" ShadowDepth="1" Color="#000000" Opacity="0.9"/></TextBlock.Effect>
             </TextBlock>
 
@@ -270,14 +298,14 @@
                     </Ellipse>
                     <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#8A8A8A"/>
                   </Grid>
-                  <TextBlock x:Name="StatusText" Text="COMPROBANDO…" Margin="12,0,0,0" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                  <TextBlock x:Name="StatusText" Text=" " Margin="12,0,0,0" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 </StackPanel>
                 <TextBlock x:Name="DetailText" Text=" " Margin="26,6,0,0" FontSize="14" Foreground="#D8CFB8"/>
                 <StackPanel Orientation="Horizontal" Margin="26,10,0,0">
                   <Ellipse x:Name="LoginDot" Width="7" Height="7" Fill="#555" VerticalAlignment="Center"/>
-                  <TextBlock Text="Login" Margin="6,0,16,0" FontSize="12" Foreground="{StaticResource Dim}"/>
+                  <TextBlock x:Name="LoginLabel" Text="Login" Margin="6,0,16,0" FontSize="12" Foreground="{StaticResource Dim}"/>
                   <Ellipse x:Name="WorldDot" Width="7" Height="7" Fill="#555" VerticalAlignment="Center"/>
-                  <TextBlock Text="Mundo" Margin="6,0,16,0" FontSize="12" Foreground="{StaticResource Dim}"/>
+                  <TextBlock x:Name="WorldLabel" Text=" " Margin="6,0,16,0" FontSize="12" Foreground="{StaticResource Dim}"/>
                   <TextBlock x:Name="PingText" Text="" FontSize="12" Foreground="{StaticResource Dim}"/>
                 </StackPanel>
                 <TextBlock x:Name="MessageText" Visibility="Collapsed" Margin="26,12,0,0" FontSize="13" TextWrapping="Wrap" Foreground="{StaticResource Gold}"/>
@@ -291,10 +319,10 @@
           <Border Grid.Column="1" CornerRadius="8" Padding="20,16" Margin="0,4,0,18"
                   Background="{StaticResource Card}" BorderBrush="{StaticResource CardLine}" BorderThickness="1">
             <DockPanel>
-              <TextBlock DockPanel.Dock="Top" Text="NOVEDADES" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Gold}" Margin="0,0,0,10"/>
+              <TextBlock x:Name="NewsHeader" DockPanel.Dock="Top" Text=" " FontSize="12" FontWeight="Bold" Foreground="{StaticResource Gold}" Margin="0,0,0,10"/>
               <ScrollViewer VerticalScrollBarVisibility="Hidden">
                 <StackPanel x:Name="NewsList">
-                  <TextBlock Text="Cargando…" Foreground="{StaticResource Dim}" FontSize="13"/>
+                  <TextBlock x:Name="NewsPlaceholder" Text=" " Foreground="{StaticResource Dim}" FontSize="13"/>
                 </StackPanel>
               </ScrollViewer>
             </DockPanel>
@@ -315,15 +343,15 @@
               <ColumnDefinition Width="250"/>
             </Grid.ColumnDefinitions>
             <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
-              <TextBlock x:Name="StepText" Text="Listo para jugar." FontSize="15" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="42"/>
+              <TextBlock x:Name="StepText" Text=" " FontSize="15" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="42"/>
               <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <TextBlock x:Name="ClientText" Text="" FontSize="12" Foreground="{StaticResource Dim}" VerticalAlignment="Center"/>
                 <TextBlock x:Name="FolderText" Text="" FontSize="12" Foreground="#6F6857" Margin="10,0,0,0" MaxWidth="340" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                <Button x:Name="FolderButton" Style="{StaticResource LinkButton}" Content="Cambiar carpeta" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                <Button x:Name="LogButton" Style="{StaticResource LinkButton}" Content="Ver registro" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                <Button x:Name="FolderButton" Style="{StaticResource LinkButton}" Content=" " Margin="12,0,0,0" VerticalAlignment="Center"/>
+                <Button x:Name="LogButton" Style="{StaticResource LinkButton}" Content=" " Margin="12,0,0,0" VerticalAlignment="Center"/>
               </StackPanel>
             </StackPanel>
-            <Button x:Name="PlayButton" Grid.Column="1" Style="{StaticResource PlayButton}" Height="58" Content="JUGAR" VerticalAlignment="Center"/>
+            <Button x:Name="PlayButton" Grid.Column="1" Style="{StaticResource PlayButton}" Height="58" Content=" " VerticalAlignment="Center"/>
           </Grid>
         </Border>
       </Grid>

@@ -55,7 +55,7 @@ namespace ForeverLauncher
 
         enum StoreState { Invalid, Original, Patched }
 
-        public event Action<string, MsgKind> Message;
+        public event Action<Msg> Message;
         public event Action<PatchPhase> PhaseChanged;
 
         readonly string gameDir, exePath, logFile;
@@ -72,15 +72,15 @@ namespace ForeverLauncher
         public string LogFile { get { return logFile; } }
 
         // Devuelve null si la carpeta vale; si no, el motivo. 'version' = FileVersion de WowB.exe (o null).
-        public static string CheckGameDir(string dir, out string version)
+        public static Msg CheckGameDir(string dir, out string version)
         {
             version = null;
-            if (string.IsNullOrEmpty(dir)) return "Elige la carpeta _classic_beta_ del juego.";
+            if (string.IsNullOrEmpty(dir)) return new Msg(MsgKind.Warn, "dir.choose");
             string exe = Path.Combine(dir, ExeName);
-            if (!File.Exists(exe)) return "No encuentro WowB.exe en esa carpeta (tiene que ser _classic_beta_).";
+            if (!File.Exists(exe)) return new Msg(MsgKind.Warn, "dir.noexe");
             version = FileVersionInfo.GetVersionInfo(exe).FileVersion;
             if (Array.IndexOf(SupportedVersions, version) < 0)
-                return "Tu cliente es la build " + version + "; el servidor admite " + string.Join(", ", SupportedVersions) + ".";
+                return new Msg(MsgKind.Warn, "dir.badbuild", version, string.Join(", ", SupportedVersions));
             return null;
         }
 
@@ -96,10 +96,18 @@ namespace ForeverLauncher
             catch { }
         }
 
-        void Say(string text, MsgKind kind)
+        // El registro va siempre en espanol (lo lee el administrador); la ventana, en el idioma elegido.
+        void Say(MsgKind kind, string key, params object[] args)
         {
-            Log(text);
-            var h = Message; if (h != null) h(text, kind);
+            var m = new Msg(kind, key, args);
+            Log(m.ToString("es"));
+            var h = Message; if (h != null) h(m);
+        }
+
+        void Say(Msg m)
+        {
+            Log(m.ToString("es"));
+            var h = Message; if (h != null) h(m);
         }
 
         void Phase(PatchPhase p)
@@ -119,7 +127,7 @@ namespace ForeverLauncher
             if (!File.Exists(wtf) && File.Exists(baseConfig))
             {
                 File.Copy(baseConfig, wtf);
-                Say("Creado WTF\\" + ConfigName + " a partir de tu Config.wtf", MsgKind.Dim);
+                Say(MsgKind.Dim, "p.wtfcreated", ConfigName);
             }
             var lines = File.Exists(wtf) ? File.ReadAllLines(wtf).ToList() : new List<string>();
             string wanted = "SET portal \"" + Portal + "\"";
@@ -134,7 +142,7 @@ namespace ForeverLauncher
             if (changed)
             {
                 File.WriteAllLines(wtf, lines);
-                Say("Configuracion actualizada: WTF\\" + ConfigName + " (portal " + Portal + ")", MsgKind.Dim);
+                Say(MsgKind.Dim, "p.wtfupdated", ConfigName, Portal);
             }
         }
 
@@ -144,7 +152,7 @@ namespace ForeverLauncher
             try { RunCore(); }
             catch (Exception ex)
             {
-                Say("Error: " + ex.Message, MsgKind.Error);
+                Say(MsgKind.Error, "p.error", ex.Message);
                 Log("----- fin (error) " + ex);
                 Phase(PatchPhase.Failed);
             }
@@ -175,23 +183,23 @@ namespace ForeverLauncher
         {
             Log("----- inicio (launcher " + App.Version + ")");
             string version;
-            string err = CheckGameDir(gameDir, out version);
-            if (err != null) { Say(err, MsgKind.Error); Phase(PatchPhase.Failed); return; }
+            Msg err = CheckGameDir(gameDir, out version);
+            if (err != null) { Say(new Msg(MsgKind.Error, err.Key, err.Args)); Phase(PatchPhase.Failed); return; }
             if (version != ExpectedVersion) Log("AVISO: build " + version + "; las claves se midieron con " + ExpectedVersion + ".");
             Phase(PatchPhase.Starting);
             EnsureConfig();
 
             var clients = FindClients();
             Process client;
-            if (clients.Count > 1) { Say("Hay varios WowB.exe abiertos desde esta carpeta: cierralos todos y vuelve a empezar.", MsgKind.Error); Phase(PatchPhase.Failed); return; }
+            if (clients.Count > 1) { Say(MsgKind.Error, "p.multi"); Phase(PatchPhase.Failed); return; }
             if (clients.Count == 1)
             {
                 client = clients[0];
-                Say("El juego ya estaba abierto: me engancho a el.", MsgKind.Info);
+                Say(MsgKind.Info, "p.attached");
             }
             else
             {
-                Say("Abriendo el juego...", MsgKind.Info);
+                Say(MsgKind.Info, "p.opening");
                 var psi = new ProcessStartInfo(exePath, "-config " + ConfigName) { WorkingDirectory = gameDir, UseShellExecute = false };
                 Process.Start(psi);
                 client = null;
@@ -201,7 +209,7 @@ namespace ForeverLauncher
                     clients = FindClients();
                     if (clients.Count >= 1) client = clients.OrderBy(c => { try { return c.StartTime; } catch { return DateTime.MinValue; } }).Last();
                 }
-                if (client == null) { Say("El juego no arranco en 60 s.", MsgKind.Error); Phase(PatchPhase.Failed); return; }
+                if (client == null) { Say(MsgKind.Error, "p.nostart"); Phase(PatchPhase.Failed); return; }
             }
             int pid = client.Id;
             Log("PID " + pid);
@@ -213,7 +221,7 @@ namespace ForeverLauncher
             {
                 if (!Alive(pid))
                 {
-                    Say("El juego se cerro. Hasta la proxima.", MsgKind.Dim);
+                    Say(MsgKind.Dim, "p.closed");
                     Log("----- fin (juego cerrado)");
                     Phase(PatchPhase.Closed);
                     return;
@@ -224,10 +232,10 @@ namespace ForeverLauncher
                     if (st == StoreState.Patched) { Thread.Sleep(3000); continue; }
                     if (st == StoreState.Original)
                     {
-                        Say("El cliente restauro la clave original: la vuelvo a poner.", MsgKind.Warn);
+                        Say(MsgKind.Warn, "p.restored");
                         Patch(pid, store); Ready(); continue;
                     }
-                    Say("El almacen se libero; si vuelves a conectar, lo buscare de nuevo.", MsgKind.Dim);
+                    Say(MsgKind.Dim, "p.released");
                     store = 0;
                     continue;
                 }
@@ -238,14 +246,14 @@ namespace ForeverLauncher
                     store = found[0].Key;
                     Log(string.Format("almacen en 0x{0:X} ({1}); {2}", store, found[0].Value, lastScan));
                     if (found[0].Value == StoreState.Patched)
-                        Say("La clave ya estaba puesta.", MsgKind.Good);
+                        Say(MsgKind.Good, "p.already");
                     else
                     {
-                        Say("Almacen de certificados encontrado: aplicando la clave del servidor...", MsgKind.Info);
+                        Say(MsgKind.Info, "p.found");
                         try { Patch(pid, store); }
                         catch (Exception ex)
                         {
-                            Say("No se pudo parchear: " + ex.Message + ". Reintento.", MsgKind.Warn);
+                            Say(MsgKind.Warn, "p.patchfail", ex.Message);
                             store = 0; Thread.Sleep(2000); continue;
                         }
                     }
@@ -254,10 +262,10 @@ namespace ForeverLauncher
                     continue;
                 }
                 if (found.Count > 1)
-                    Say("Hay " + found.Count + " almacenes validos a la vez: no escribo hasta que quede uno.", MsgKind.Warn);
+                    Say(MsgKind.Warn, "p.many", found.Count);
                 else if (!waitingSaid)
                 {
-                    Say("Esperando a que entres al reino...", MsgKind.Dim);
+                    Say(MsgKind.Dim, "p.waiting");
                     Log("busqueda: " + lastScan);
                     waitingSaid = true;
                 }
@@ -270,7 +278,7 @@ namespace ForeverLauncher
 
         void Ready()
         {
-            Say("LISTO. Si el primer intento de entrar fallo, vuelve a entrar SIN cerrar el juego.", MsgKind.Good);
+            Say(MsgKind.Good, "p.ready");
             Phase(PatchPhase.Ready);
         }
 

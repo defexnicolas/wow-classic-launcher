@@ -2,7 +2,7 @@
 
 Launcher para jugar en el servidor **Classic Forever** con el cliente beta **1.60.1** (`WowB.exe`).
 Sustituye a `play-beta.bat` / `Jugar-Beta.bat`: hace lo mismo, pero con una ventana, el estado del servidor
-y las novedades.
+y las novedades. En **español e inglés** (selector ES | EN arriba a la derecha; la primera vez usa el idioma de Windows).
 
 ![captura](docs/screenshot.png)
 
@@ -85,7 +85,7 @@ tag `vX.Y.Z`. El workflow compila, calcula el SHA-256 y crea la release.
 
 ## Para el administrador del servidor
 
-- `server/news.json`: mantenimiento (`"maintenance": true` + `"message"`), novedades, enlaces (solo `https://`) y la
+- `server/news.json`: textos en español; añade `title_en`, `text_en`, `message_en` o `label_en` para la versión en inglés (si falta, se muestra el español). Mantenimiento (`"maintenance": true` + `"message"`), novedades, enlaces (solo `https://`) y la
   versión publicada del launcher. Los cambios salen en el siguiente minuto.
 - `server/publish_status.py --once` imprime el JSON sin publicar; `server/classic-forever-status.service` lo deja
   como servicio de usuario de systemd.

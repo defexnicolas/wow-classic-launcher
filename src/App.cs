@@ -27,7 +27,7 @@ namespace ForeverLauncher
 {
     public static class App
     {
-        public const string Version = "1.0.0";
+        public const string Version = "1.1.0";
         public const string ReleasesUrl = "https://github.com/defexnicolas/wow-classic-launcher/releases/latest";
 
         [STAThread]
@@ -38,9 +38,11 @@ namespace ForeverLauncher
             {
                 if (!first)
                 {
-                    MessageBox.Show("El launcher ya esta abierto (mira en la bandeja del sistema, junto al reloj).", "Classic Forever");
+                    L.Load();
+                    MessageBox.Show(L.Get("app.already"), "Classic Forever");
                     return;
                 }
+                L.Load();
                 ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
                 AppDomain.CurrentDomain.UnhandledException += (s, e) => Crash(e.ExceptionObject as Exception);
                 var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
@@ -61,7 +63,7 @@ namespace ForeverLauncher
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(CrashFile));
                 File.AppendAllText(CrashFile, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " v" + Version + Environment.NewLine + ex + Environment.NewLine + Environment.NewLine);
-                MessageBox.Show("El launcher tuvo un error inesperado y se cerrará.\n\nDetalle guardado en:\n" + CrashFile, "Classic Forever", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(L.Get("app.crash", CrashFile), "Classic Forever", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch { }
         }
@@ -73,8 +75,9 @@ namespace ForeverLauncher
         readonly Application app;
         readonly Dispatcher ui;
 
-        Button playButton, folderButton, logButton, updateLink;
+        Button playButton, folderButton, logButton, updateLink, langEs, langEn;
         TextBlock statusText, detailText, pingText, messageText, stepText, clientText, folderText, versionText, updateText;
+        TextBlock subtitleText, newsHeader, loginLabel, worldLabel, newsPlaceholder;
         Ellipse statusDot, statusHalo, loginDot, worldDot;
         StackPanel newsList;
         WrapPanel linksPanel;
@@ -86,6 +89,10 @@ namespace ForeverLauncher
         bool gameRunning;
         WinForms.NotifyIcon tray;
         string updateUrl = App.ReleasesUrl;
+        ServerStatus lastStatus;       // ultimo estado recibido (se repinta al cambiar de idioma)
+        Msg lastStep;                  // ultimo mensaje de la barra inferior
+        string clientVersion;
+        bool clientOk;
 
         static readonly Color Green = Color.FromRgb(0x5C, 0xD6, 0x7A), Red = Color.FromRgb(0xE0, 0x5A, 0x4E),
                               Amber = Color.FromRgb(0xF0, 0xB2, 0x3E), Grey = Color.FromRgb(0x8A, 0x8A, 0x8A);
@@ -107,6 +114,11 @@ namespace ForeverLauncher
             loginDot = Find<Ellipse>("LoginDot"); worldDot = Find<Ellipse>("WorldDot");
             newsList = Find<StackPanel>("NewsList"); linksPanel = Find<WrapPanel>("LinksPanel");
             updateBanner = Find<Border>("UpdateBanner"); stars = Find<Canvas>("Stars");
+            subtitleText = Find<TextBlock>("SubtitleText"); newsHeader = Find<TextBlock>("NewsHeader");
+            loginLabel = Find<TextBlock>("LoginLabel"); worldLabel = Find<TextBlock>("WorldLabel"); newsPlaceholder = Find<TextBlock>("NewsPlaceholder");
+            langEs = Find<Button>("LangEs"); langEn = Find<Button>("LangEn");
+            langEs.Click += (s, e) => SetLanguage("es");
+            langEn.Click += (s, e) => SetLanguage("en");
 
             versionText.Text = "v" + App.Version;
             Find<Grid>("TitleBar").MouseLeftButtonDown += (s, e) => { if (e.ButtonState == MouseButtonState.Pressed) Window.DragMove(); };
@@ -121,6 +133,7 @@ namespace ForeverLauncher
 
             DrawStars();
             PulseHalo();
+            ApplyLanguage();
             SetGameDir(Settings.LoadGameDir() ?? GameLocator.Find(), false);
 
             var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
@@ -130,6 +143,40 @@ namespace ForeverLauncher
         }
 
         T Find<T>(string name) where T : class { return (T)Window.FindName(name); }
+
+        // ------------------------------------------------------------------ idioma
+        void SetLanguage(string lang)
+        {
+            if (L.Lang == lang) return;
+            L.Lang = lang;
+            L.Save();
+            ApplyLanguage();
+        }
+
+        void ApplyLanguage()
+        {
+            var gold = (Brush)Window.FindResource("Gold");
+            var on = new SolidColorBrush(Color.FromArgb(0x33, 0xE8, 0xC4, 0x6A));
+            langEs.Foreground = L.Lang == "es" ? gold : new SolidColorBrush(Color.FromRgb(0x8F, 0x87, 0x73));
+            langEs.Background = L.Lang == "es" ? on : Brushes.Transparent;
+            langEn.Foreground = L.Lang == "en" ? gold : new SolidColorBrush(Color.FromRgb(0x8F, 0x87, 0x73));
+            langEn.Background = L.Lang == "en" ? on : Brushes.Transparent;
+
+            subtitleText.Text = L.Get("ui.subtitle");
+            newsHeader.Text = L.Get("ui.news");
+            loginLabel.Text = L.Get("ui.login");
+            worldLabel.Text = L.Get("ui.world");
+            logButton.Content = L.Get("ui.viewlog");
+            updateLink.Content = L.Get("ui.download");
+            playButton.Content = L.Get(gameRunning ? "ui.ingame" : "ui.play");
+            folderButton.Content = L.Get(gameDir == null ? "ui.pickfolder" : "ui.changefolder");
+            clientText.Text = clientVersion == null ? "" : L.Get("ui.client", clientVersion) + (clientOk ? "  ✓" : "");
+            if (newsPlaceholder.Parent != null) newsPlaceholder.Text = L.Get(lastStatus == null ? "ui.loading" : "ui.newsfail");
+            if (lastStatus == null) statusText.Text = L.Get("status.checking");
+            else RenderStatus(lastStatus);
+            if (lastStep != null) Step(lastStep);
+            if (tray != null) BuildTrayMenu();
+        }
 
         static System.Drawing.Icon AppIcon()
         {
@@ -172,34 +219,46 @@ namespace ForeverLauncher
         {
             ServerStatus s;
             try { s = await StatusClient.FetchAsync(); } catch { return; }
+            if (s.FeedOk || lastStatus == null || !lastStatus.FeedOk) lastStatus = s;
+            else
+            {
+                // Fallo puntual al leer status.json: se conservan las novedades anteriores y se actualiza la sonda.
+                s.FeedOk = true; s.Root = lastStatus.Root; s.News = lastStatus.News; s.Links = lastStatus.Links;
+                s.LatestLauncher = lastStatus.LatestLauncher; s.LauncherUrl = lastStatus.LauncherUrl;
+                lastStatus = s;
+            }
+            RenderStatus(s);
+        }
 
-            Color c; string text;
-            if (s.LoginUp && s.WorldUp) { c = Green; text = "EN LÍNEA"; }
-            else if (s.LoginUp) { c = Amber; text = "MUNDO NO DISPONIBLE"; }
-            else if (s.FeedFresh && s.FeedLoginUp) { c = Amber; text = "NO LLEGO DESDE TU RED"; }
-            else if (s.Maintenance) { c = Amber; text = "MANTENIMIENTO"; }
-            else { c = Red; text = "FUERA DE LÍNEA"; }
+        void RenderStatus(ServerStatus s)
+        {
+            Color c; string key;
+            if (s.LoginUp && s.WorldUp) { c = Green; key = "status.online"; }
+            else if (s.LoginUp) { c = Amber; key = "status.worlddown"; }
+            else if (s.FeedFresh && s.FeedLoginUp) { c = Amber; key = "status.unreachable"; }
+            else if (s.Maintenance) { c = Amber; key = "status.maintenance"; }
+            else { c = Red; key = "status.offline"; }
             SetDot(statusDot, c); SetDot(statusHalo, c);
-            statusText.Text = text;
+            statusText.Text = L.Get(key);
             SetDot(loginDot, s.LoginUp ? Green : Red);
             SetDot(worldDot, s.WorldUp ? Green : Red);
             pingText.Text = s.LoginMs >= 0 ? s.LoginMs + " ms" : "";
 
             if (!s.LoginUp && !s.WorldUp)
-                detailText.Text = "El servidor no responde.";
+                detailText.Text = L.Get("status.noresponse");
             else
                 detailText.Text = " ";
 
-            messageText.Text = s.Message;
-            messageText.Visibility = string.IsNullOrWhiteSpace(s.Message) ? Visibility.Collapsed : Visibility.Visible;
+            string message = s.Root.Get("message") ?? "";
+            messageText.Text = message;
+            messageText.Visibility = string.IsNullOrWhiteSpace(message) ? Visibility.Collapsed : Visibility.Visible;
 
             if (s.FeedOk) { FillNews(s); FillLinks(s); }
-            else if (newsList.Children.Count == 1 && newsList.Children[0] is TextBlock && ((TextBlock)newsList.Children[0]).Text == "Cargando…")
-                ((TextBlock)newsList.Children[0]).Text = "No se pudieron cargar las novedades.";
+            else if (newsPlaceholder.Parent != null) newsPlaceholder.Text = L.Get("ui.newsfail");
 
             if (StatusClient.IsNewer(s.LatestLauncher, App.Version))
             {
-                updateText.Text = "Hay una versión nueva del launcher (v" + s.LatestLauncher + ")";
+                updateText.Text = L.Get("ui.update", s.LatestLauncher);
                 if (!string.IsNullOrEmpty(s.LauncherUrl)) updateUrl = s.LauncherUrl;
                 updateBanner.Visibility = Visibility.Visible;
             }
@@ -215,25 +274,26 @@ namespace ForeverLauncher
             newsList.Children.Clear();
             if (s.News.Count == 0)
             {
-                newsList.Children.Add(new TextBlock { Text = "Sin novedades.", Foreground = (Brush)Window.FindResource("Dim"), FontSize = 13 });
+                newsList.Children.Add(new TextBlock { Text = L.Get("ui.nonews"), Foreground = (Brush)Window.FindResource("Dim"), FontSize = 13 });
                 return;
             }
             foreach (var n in s.News)
             {
+                string date = n.Get("date"), text = n.Get("text"), link = n.Get("url");
                 var item = new StackPanel { Margin = new Thickness(0, 0, 0, 16) };
-                if (!string.IsNullOrEmpty(n.Date))
-                    item.Children.Add(new TextBlock { Text = n.Date, FontSize = 11, Foreground = (Brush)Window.FindResource("Dim") });
-                var title = new TextBlock { Text = n.Title ?? "", FontSize = 14, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) };
-                if (!string.IsNullOrEmpty(n.Url))
+                if (!string.IsNullOrEmpty(date))
+                    item.Children.Add(new TextBlock { Text = date, FontSize = 11, Foreground = (Brush)Window.FindResource("Dim") });
+                var title = new TextBlock { Text = n.Get("title") ?? "", FontSize = 14, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) };
+                if (!string.IsNullOrEmpty(link))
                 {
-                    string url = n.Url;
+                    string url = link;
                     title.Cursor = Cursors.Hand;
                     title.Foreground = (Brush)Window.FindResource("Gold");
                     title.MouseLeftButtonUp += (o, e) => OpenUrl(url);
                 }
                 item.Children.Add(title);
-                if (!string.IsNullOrEmpty(n.Text))
-                    item.Children.Add(new TextBlock { Text = n.Text, FontSize = 12.5, Foreground = new SolidColorBrush(Color.FromRgb(0xC4, 0xBB, 0xA5)), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0), LineHeight = 18 });
+                if (!string.IsNullOrEmpty(text))
+                    item.Children.Add(new TextBlock { Text = text, FontSize = 12.5, Foreground = new SolidColorBrush(Color.FromRgb(0xC4, 0xBB, 0xA5)), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0), LineHeight = 18 });
                 newsList.Children.Add(item);
             }
         }
@@ -243,9 +303,9 @@ namespace ForeverLauncher
             linksPanel.Children.Clear();
             foreach (var l in s.Links)
             {
-                string url = l.Url;
+                string url = l.Get("url");
                 if (!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) continue;
-                var b = new Button { Content = l.Label, Style = (Style)Window.FindResource("PillButton") };
+                var b = new Button { Content = l.Get("label"), Style = (Style)Window.FindResource("PillButton") };
                 b.Click += (o, e) => OpenUrl(url);
                 linksPanel.Children.Add(b);
             }
@@ -262,20 +322,17 @@ namespace ForeverLauncher
         {
             gameDir = dir;
             string version;
-            string err = Patcher.CheckGameDir(dir, out version);
+            Msg err = Patcher.CheckGameDir(dir, out version);
             folderText.Text = dir ?? "";
             folderText.ToolTip = dir;
-            if (version != null) clientText.Text = "Cliente " + version + (err == null ? "  ✓" : "");
-            else clientText.Text = "";
-            if (err != null)
-            {
-                Step(err, MsgKind.Warn);
-                folderButton.Content = dir == null ? "Elegir carpeta" : "Cambiar carpeta";
-            }
+            clientVersion = version;
+            clientOk = err == null;
+            clientText.Text = version == null ? "" : L.Get("ui.client", version) + (clientOk ? "  ✓" : "");
+            folderButton.Content = L.Get(dir == null ? "ui.pickfolder" : "ui.changefolder");
+            if (err != null) Step(err);
             else
             {
-                Step("Listo para jugar.", MsgKind.Info);
-                folderButton.Content = "Cambiar carpeta";
+                Step(new Msg(MsgKind.Info, "ui.ready"));
                 if (save) Settings.SaveGameDir(dir);
             }
         }
@@ -284,7 +341,7 @@ namespace ForeverLauncher
         {
             using (var dlg = new WinForms.FolderBrowserDialog())
             {
-                dlg.Description = "Elige la carpeta _classic_beta_ (la que tiene WowB.exe)";
+                dlg.Description = L.Get("ui.folderdlg");
                 dlg.ShowNewFolderButton = false;
                 if (gameDir != null && Directory.Exists(gameDir)) dlg.SelectedPath = gameDir;
                 if (dlg.ShowDialog() != WinForms.DialogResult.OK) return;
@@ -301,24 +358,24 @@ namespace ForeverLauncher
             if (gameDir == null) return;
             string log = Path.Combine(gameDir, "Logs", "launcher.log");
             if (File.Exists(log)) try { Process.Start(new ProcessStartInfo(log) { UseShellExecute = true }); } catch { }
-            else Step("Todavia no hay registro (se crea al jugar).", MsgKind.Dim);
+            else Step(new Msg(MsgKind.Dim, "ui.nolog"));
         }
 
         // ------------------------------------------------------------------ jugar
         void Play()
         {
             string version;
-            string err = Patcher.CheckGameDir(gameDir, out version);
-            if (err != null) { Step(err, MsgKind.Error); if (!File.Exists(Path.Combine(gameDir ?? "", Patcher.ExeName))) PickFolder(); return; }
+            Msg err = Patcher.CheckGameDir(gameDir, out version);
+            if (err != null) { Step(new Msg(MsgKind.Error, err.Key, err.Args)); if (!File.Exists(Path.Combine(gameDir ?? "", Patcher.ExeName))) PickFolder(); return; }
             Settings.SaveGameDir(gameDir);
 
             gameRunning = true;
             playButton.IsEnabled = false;
-            playButton.Content = "EN JUEGO";
+            playButton.Content = L.Get("ui.ingame");
             folderButton.IsEnabled = false;
 
             patcher = new Patcher(gameDir);
-            patcher.Message += (text, kind) => ui.BeginInvoke(new Action(() => Step(text, kind)));
+            patcher.Message += m => ui.BeginInvoke(new Action(() => Step(m)));
             patcher.PhaseChanged += p => ui.BeginInvoke(new Action(() => OnPhase(p)));
             var t = new Thread(patcher.Run) { IsBackground = true, Name = "patcher" };
             t.Start();
@@ -335,15 +392,14 @@ namespace ForeverLauncher
                 case PatchPhase.Ready:
                     System.Media.SystemSounds.Asterisk.Play();
                     if (tray != null)
-                        tray.ShowBalloonTip(6000, "Classic Forever: listo",
-                            "Si el primer intento de entrar al reino falló, vuelve a entrar sin cerrar el juego.", WinForms.ToolTipIcon.Info);
+                        tray.ShowBalloonTip(6000, L.Get("tray.readytitle"), L.Get("tray.readytext"), WinForms.ToolTipIcon.Info);
                     break;
                 case PatchPhase.Closed:
                 case PatchPhase.Failed:
                     gameRunning = false;
                     patcher = null;
                     playButton.IsEnabled = true;
-                    playButton.Content = "JUGAR";
+                    playButton.Content = L.Get("ui.play");
                     folderButton.IsEnabled = true;
                     HideTray();
                     RestoreWindow();
@@ -351,11 +407,13 @@ namespace ForeverLauncher
             }
         }
 
-        void Step(string text, MsgKind kind)
+        void Step(Msg m)
         {
+            lastStep = m;
+            string text = m.ToString();
             stepText.Text = text;
             Color c;
-            switch (kind)
+            switch (m.Kind)
             {
                 case MsgKind.Good: c = Green; break;
                 case MsgKind.Warn: c = Amber; break;
@@ -374,11 +432,18 @@ namespace ForeverLauncher
         {
             if (tray != null) return;
             tray = new WinForms.NotifyIcon { Icon = AppIcon(), Text = "Classic Forever", Visible = true };
-            var menu = new WinForms.ContextMenuStrip();
-            menu.Items.Add("Abrir launcher", null, (s, e) => RestoreWindow());
-            menu.Items.Add("Salir del launcher", null, (s, e) => ConfirmExit());
-            tray.ContextMenuStrip = menu;
+            BuildTrayMenu();
             tray.DoubleClick += (s, e) => RestoreWindow();
+        }
+
+        void BuildTrayMenu()
+        {
+            var menu = new WinForms.ContextMenuStrip();
+            menu.Items.Add(L.Get("tray.open"), null, (s, e) => RestoreWindow());
+            menu.Items.Add(L.Get("tray.exit"), null, (s, e) => ConfirmExit());
+            var old = tray.ContextMenuStrip;
+            tray.ContextMenuStrip = menu;
+            if (old != null) old.Dispose();
         }
 
         void HideTray()
@@ -393,7 +458,7 @@ namespace ForeverLauncher
         {
             ShowTray();
             Window.Hide();
-            tray.ShowBalloonTip(4000, "Classic Forever", "El launcher sigue aquí mientras juegas. Se cierra solo con el juego.", WinForms.ToolTipIcon.None);
+            tray.ShowBalloonTip(4000, "Classic Forever", L.Get("tray.hidden"), WinForms.ToolTipIcon.None);
         }
 
         void RestoreWindow()
@@ -413,7 +478,7 @@ namespace ForeverLauncher
         {
             if (gameRunning)
             {
-                var r = MessageBox.Show("Si cierras el launcher mientras juegas y el juego se reconecta, no se volverá a poner la clave y no podrás entrar al reino.\n\n¿Salir de todas formas?",
+                var r = MessageBox.Show(L.Get("exit.confirm"),
                     "Classic Forever", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (r != MessageBoxResult.Yes) return;
             }

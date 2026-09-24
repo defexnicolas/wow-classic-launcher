@@ -14,18 +14,28 @@ using System.Web.Script.Serialization;
 
 namespace ForeverLauncher
 {
-    public sealed class NewsItem { public string Date, Title, Text, Url; }
-    public sealed class LinkItem { public string Label, Url; }
+    // Campo traducible del JSON: "title" es el texto base y "title_en" (etc.) su traduccion; si falta, se usa el base.
+    public sealed class FeedEntry
+    {
+        readonly Dictionary<string, object> d;
+        public FeedEntry(Dictionary<string, object> d) { this.d = d ?? new Dictionary<string, object>(); }
+        public string Get(string key)
+        {
+            object v;
+            if (d.TryGetValue(key + "_" + L.Lang, out v) && v != null && v.ToString().Length > 0) return v.ToString();
+            return d.TryGetValue(key, out v) && v != null ? v.ToString() : null;
+        }
+    }
 
     public sealed class ServerStatus
     {
         public bool LoginUp, WorldUp;
         public long LoginMs = -1;
         public bool FeedOk, FeedFresh, FeedLoginUp, FeedWorldUp, Maintenance;
-        public string Message = "";
+        public FeedEntry Root = new FeedEntry(null);   // "message" / "message_en"
         public string LatestLauncher, LauncherUrl;
-        public List<NewsItem> News = new List<NewsItem>();
-        public List<LinkItem> Links = new List<LinkItem>();
+        public List<FeedEntry> News = new List<FeedEntry>();
+        public List<FeedEntry> Links = new List<FeedEntry>();
     }
 
     public static class StatusClient
@@ -89,7 +99,7 @@ namespace ForeverLauncher
                     s.FeedWorldUp = Bool(realm, "world");
                 }
                 s.Maintenance = Bool(root, "maintenance");
-                s.Message = Str(root, "message") ?? "";
+                s.Root = new FeedEntry(root);
 
                 var launcher = root.ContainsKey("launcher") ? root["launcher"] as Dictionary<string, object> : null;
                 if (launcher != null) { s.LatestLauncher = Str(launcher, "version"); s.LauncherUrl = Str(launcher, "url"); }
@@ -97,12 +107,12 @@ namespace ForeverLauncher
                 foreach (var o in List(root, "news"))
                 {
                     var d = o as Dictionary<string, object>;
-                    if (d != null) s.News.Add(new NewsItem { Date = Str(d, "date"), Title = Str(d, "title"), Text = Str(d, "text"), Url = Str(d, "url") });
+                    if (d != null) s.News.Add(new FeedEntry(d));
                 }
                 foreach (var o in List(root, "links"))
                 {
                     var d = o as Dictionary<string, object>;
-                    if (d != null && Str(d, "label") != null && Str(d, "url") != null) s.Links.Add(new LinkItem { Label = Str(d, "label"), Url = Str(d, "url") });
+                    if (d != null && Str(d, "label") != null && Str(d, "url") != null) s.Links.Add(new FeedEntry(d));
                 }
             }
             catch { }

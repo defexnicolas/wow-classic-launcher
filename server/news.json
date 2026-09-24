@@ -6,20 +6,32 @@
     {
       "date": "2026-09-24",
       "title": "Nuevo launcher",
-      "text": "Adiós al .bat: el launcher abre el juego, pone la clave del servidor y te avisa cuando esté listo. Puedes cerrarlo a la bandeja mientras juegas."
+      "text": "Adiós al .bat: el launcher abre el juego, pone la clave del servidor y te avisa cuando esté listo. Puedes cerrarlo a la bandeja mientras juegas.",
+      "title_en": "New launcher",
+      "text_en": "Goodbye .bat: the launcher opens the game, applies the server key and tells you when it's ready. You can close it to the tray while you play."
     },
     {
       "date": "2026-09-23",
       "title": "Contenido de 1.60.1 hasta nivel 20",
-      "text": "Razas Skyborne en Zephras Isle, Thendal Village y Shen'dar Village pobladas, nuevas combinaciones de raza y clase y campamentos."
+      "text": "Razas Skyborne en Zephras Isle, Thendal Village y Shen'dar Village pobladas, nuevas combinaciones de raza y clase y campamentos.",
+      "title_en": "1.60.1 content up to level 20",
+      "text_en": "Skyborne races on Zephras Isle, Thendal Village and Shen'dar Village populated, new race/class combinations and camps."
     }
   ],
   "links": [
-    { "label": "Código del launcher", "url": "https://github.com/defexnicolas/wow-classic-launcher" }
+    {
+      "label": "Código del launcher",
+      "url": "https://github.com/defexnicolas/wow-classic-launcher",
+      "label_en": "Launcher source code"
+    }
   ],
   "launcher": {
     "version": "1.0.0",
     "url": "https://github.com/defexnicolas/wow-classic-launcher/releases/latest"
   },
-  "clientBuilds": ["1.60.1.69913", "1.60.1.69977"]
+  "clientBuilds": [
+    "1.60.1.69913",
+    "1.60.1.69977"
+  ],
+  "message_en": ""
 }
