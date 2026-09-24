@@ -272,7 +272,7 @@
                   </Grid>
                   <TextBlock x:Name="StatusText" Text="COMPROBANDO…" Margin="12,0,0,0" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 </StackPanel>
-                <TextBlock x:Name="PlayersText" Text=" " Margin="26,6,0,0" FontSize="14" Foreground="#D8CFB8"/>
+                <TextBlock x:Name="DetailText" Text=" " Margin="26,6,0,0" FontSize="14" Foreground="#D8CFB8"/>
                 <StackPanel Orientation="Horizontal" Margin="26,10,0,0">
                   <Ellipse x:Name="LoginDot" Width="7" Height="7" Fill="#555" VerticalAlignment="Center"/>
                   <TextBlock Text="Login" Margin="6,0,16,0" FontSize="12" Foreground="{StaticResource Dim}"/>

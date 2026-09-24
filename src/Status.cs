@@ -1,6 +1,6 @@
 // Estado del servidor. Dos fuentes:
 //   1. Sonda directa: conexion TCP (y nada mas) al login y al mundo. Dice la verdad en tiempo real.
-//   2. status.json publicado en GitHub (server/publish_status.py): jugadores, mantenimiento, noticias, enlaces
+//   2. status.json publicado en GitHub (server/publish_status.py): mantenimiento, noticias, enlaces
 //      y la ultima version del launcher. Si esta viejo (> 15 min) se ignora lo que dice del estado.
 using System;
 using System.Collections;
@@ -22,7 +22,6 @@ namespace ForeverLauncher
         public bool LoginUp, WorldUp;
         public long LoginMs = -1;
         public bool FeedOk, FeedFresh, FeedLoginUp, FeedWorldUp, Maintenance;
-        public int Players = -1;
         public string Message = "";
         public string LatestLauncher, LauncherUrl;
         public List<NewsItem> News = new List<NewsItem>();
@@ -88,8 +87,6 @@ namespace ForeverLauncher
                 {
                     s.FeedLoginUp = Bool(realm, "login");
                     s.FeedWorldUp = Bool(realm, "world");
-                    object p;
-                    if (realm.TryGetValue("players", out p) && p is int) s.Players = (int)p;
                 }
                 s.Maintenance = Bool(root, "maintenance");
                 s.Message = Str(root, "message") ?? "";

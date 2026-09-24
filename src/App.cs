@@ -74,7 +74,7 @@ namespace ForeverLauncher
         readonly Dispatcher ui;
 
         Button playButton, folderButton, logButton, updateLink;
-        TextBlock statusText, playersText, pingText, messageText, stepText, clientText, folderText, versionText, updateText;
+        TextBlock statusText, detailText, pingText, messageText, stepText, clientText, folderText, versionText, updateText;
         Ellipse statusDot, statusHalo, loginDot, worldDot;
         StackPanel newsList;
         WrapPanel linksPanel;
@@ -100,7 +100,7 @@ namespace ForeverLauncher
 
             playButton = Find<Button>("PlayButton"); folderButton = Find<Button>("FolderButton"); logButton = Find<Button>("LogButton");
             updateLink = Find<Button>("UpdateLink");
-            statusText = Find<TextBlock>("StatusText"); playersText = Find<TextBlock>("PlayersText"); pingText = Find<TextBlock>("PingText");
+            statusText = Find<TextBlock>("StatusText"); detailText = Find<TextBlock>("DetailText"); pingText = Find<TextBlock>("PingText");
             messageText = Find<TextBlock>("MessageText"); stepText = Find<TextBlock>("StepText"); clientText = Find<TextBlock>("ClientText");
             folderText = Find<TextBlock>("FolderText"); versionText = Find<TextBlock>("VersionText"); updateText = Find<TextBlock>("UpdateText");
             statusDot = Find<Ellipse>("StatusDot"); statusHalo = Find<Ellipse>("StatusHalo");
@@ -185,12 +185,10 @@ namespace ForeverLauncher
             SetDot(worldDot, s.WorldUp ? Green : Red);
             pingText.Text = s.LoginMs >= 0 ? s.LoginMs + " ms" : "";
 
-            if (s.Players >= 0 && s.LoginUp)
-                playersText.Text = s.Players == 1 ? "1 jugador conectado" : s.Players + " jugadores conectados";
-            else if (!s.LoginUp && !s.WorldUp)
-                playersText.Text = "El servidor no responde.";
+            if (!s.LoginUp && !s.WorldUp)
+                detailText.Text = "El servidor no responde.";
             else
-                playersText.Text = " ";
+                detailText.Text = " ";
 
             messageText.Text = s.Message;
             messageText.Visibility = string.IsNullOrWhiteSpace(s.Message) ? Visibility.Collapsed : Visibility.Visible;

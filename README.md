@@ -54,7 +54,7 @@ La ventana muestra si el servidor está en línea de dos formas:
 
 - **Sonda directa**: abre y cierra una conexión TCP con el login (`1119`) y el mundo (`8085`). Así sabe en tiempo
   real si está arriba, abajo o si solo responde el login.
-- **`status.json`** en la rama [`status`](../../tree/status) de este repo: jugadores conectados, mantenimiento,
+- **`status.json`** en la rama [`status`](../../tree/status) de este repo: mantenimiento,
   novedades, enlaces y la última versión del launcher. Lo publica el servidor cada minuto con
   [`server/publish_status.py`](server/publish_status.py). Si tiene más de 15 minutos, el launcher no se fía de él.
 

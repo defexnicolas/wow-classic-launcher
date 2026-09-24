@@ -3,7 +3,6 @@
 
 Corre en la maquina del servidor. Cada --interval segundos:
   - comprueba los puertos del login y del mundo en local,
-  - cuenta los personajes conectados (sin las cuentas de bots),
   - mezcla news.json (mantenimiento, mensaje, noticias, enlaces, version del launcher),
   - y si algo cambio (o cada --heartbeat segundos, para que el launcher sepa que el dato es fresco)
     fuerza un unico commit en la rama `status`. La rama no acumula historia.
@@ -34,34 +33,16 @@ def port_open(host, port, timeout=2.0):
         return False
 
 
-def players_online(a):
-    exclude = ",".join(str(int(x)) for x in a.exclude_accounts.split(",") if x.strip())
-    sql = f"SELECT COUNT(*) FROM characters WHERE online=1" + (f" AND account NOT IN ({exclude})" if exclude else "")
-    env = dict(os.environ, MYSQL_PWD=a.mysql_password)
-    out = subprocess.run(["mysql", "-h", a.mysql_host, "-u", a.mysql_user, "-N", "-B", a.characters_db, "-e", sql],
-                         env=env, capture_output=True, text=True, timeout=15)
-    if out.returncode != 0:
-        raise RuntimeError(out.stderr.strip())
-    return int(out.stdout.strip() or 0)
-
 
 def build_status(a):
     login = port_open("127.0.0.1", a.login_port)
     world = port_open("127.0.0.1", a.world_port)
-    players = None
-    if world:
-        try:
-            players = players_online(a)
-        except Exception as e:  # sin base no hay contador, pero el estado sigue valiendo
-            print(f"[status] mysql: {e}", file=sys.stderr)
     try:
         with open(a.news, encoding="utf-8") as f:
             extra = json.load(f)
     except FileNotFoundError:
         extra = {}
     realm = {"name": extra.get("realmName", "Classic Forever"), "login": login, "world": world}
-    if players is not None:
-        realm["players"] = players
     return {
         "schema": 1,
         "updated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -116,11 +97,6 @@ def main():
     p.add_argument("--branch", default="status")
     p.add_argument("--login-port", type=int, default=1119)
     p.add_argument("--world-port", type=int, default=8085)
-    p.add_argument("--mysql-host", default="127.0.0.1")
-    p.add_argument("--mysql-user", default=os.environ.get("STATUS_MYSQL_USER", ""))
-    p.add_argument("--mysql-password", default=os.environ.get("STATUS_MYSQL_PASSWORD", ""))
-    p.add_argument("--characters-db", default="characters_b")
-    p.add_argument("--exclude-accounts", default="3", help="ids de cuentas de bots, separados por comas")
     a = p.parse_args()
 
     if a.once or not a.loop:
@@ -136,7 +112,7 @@ def main():
                 publish(a, st)
                 last, last_push = key, time.time()
                 r = st["realm"]
-                print(f"[status] {st['updated']} login={r['login']} world={r['world']} players={r.get('players')}", flush=True)
+                print(f"[status] {st['updated']} login={r['login']} world={r['world']}", flush=True)
         except Exception as e:
             print(f"[status] error: {e}", file=sys.stderr, flush=True)
         time.sleep(a.interval)
