@@ -149,15 +149,38 @@ def maps_exe(pid):
         return False
 
 
+def argv0(pid):
+    try:
+        with open(f'/proc/{pid}/cmdline', 'rb') as f:
+            return f.read().split(b'\0', 1)[0].decode(errors='replace')
+    except OSError:
+        return ''
+
+
+def is_wine_client(pid):
+    """Proceso de Wine cuyo programa es WowB.exe. Wine pone como argv[0] la ruta del .exe (de Windows o de Linux)
+    y su ejecutable es wine / wine64 / wine-preloader. Hace falta ademas de maps_exe(): en discos NTFS/exFAT
+    montados sin permiso de ejecucion, Wine copia el .exe a memoria en vez de mapearlo."""
+    a0 = argv0(pid).replace('\\', '/').lower()
+    if not a0.endswith('/' + EXE_NAME.lower()) and a0 != EXE_NAME.lower():
+        return False
+    try:
+        exe = os.path.basename(os.readlink(f'/proc/{pid}/exe')).lower()
+    except OSError:
+        return False
+    return exe.startswith('wine')
+
+
 def find_clients(root=None):
-    """PIDs del cliente: procesos que tienen WowB.exe cargado en memoria. Los intermediarios (script proton,
-    contenedor de Steam, lanzadores) solo lo nombran en la linea de ordenes. Primero los descendientes de 'root'."""
+    """PIDs del cliente: el proceso de Wine que ejecuta WowB.exe (o que lo tiene cargado en memoria). Los
+    intermediarios (script proton, contenedor de Steam, lanzadores) solo lo nombran en la linea de ordenes.
+    Primero los descendientes de 'root'."""
     found = []
     for d in os.listdir('/proc'):
         if not d.isdigit():
             continue
         pid = int(d)
-        if pid != os.getpid() and maps_exe(pid):
+        if pid != os.getpid() and (is_wine_client(pid) or maps_exe(pid)):
             found.append(pid)
     return sorted(found, key=lambda p: (not (root and is_descendant(p, root)), -rss(p)))
 
@@ -172,7 +195,7 @@ def describe_candidates():
                 exe = os.readlink(f'/proc/{pid}/exe')
             except OSError:
                 exe = '?'
-            out.append(f'pid {pid} ppid {parent(pid)} exe {exe} mapea_exe={maps_exe(pid)} cmd {cmdline(pid)[:160]}')
+            out.append(f'pid {pid} ppid {parent(pid)} exe {exe} mapea_exe={maps_exe(pid)} wine={is_wine_client(pid)} cmd {cmdline(pid)[:160]}')
     return out or ['(ningun proceso menciona WowB.exe)']
 
 
