@@ -26,12 +26,13 @@
     }
   ],
   "launcher": {
-    "version": "1.1.0",
+    "version": "1.1.1",
     "url": "https://github.com/defexnicolas/wow-classic-launcher/releases/latest"
   },
   "clientBuilds": [
     "1.60.1.69913",
-    "1.60.1.69977"
+    "1.60.1.69977",
+    "1.60.1.70009"
   ],
   "message_en": ""
 }

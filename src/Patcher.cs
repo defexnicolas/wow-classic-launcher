@@ -29,10 +29,10 @@ namespace ForeverLauncher
         public const string Portal = "auth.gpon.com.co";   // el certificado del servidor esta emitido para este nombre: NO una IP
         public const string ConfigName = "BetaSuspendedTest.wtf";
         public const string ExeName = "WowB.exe";
-        public const string ExpectedVersion = "1.60.1.69977";   // build con el que se MIDIERON las claves
-        public static readonly string[] SupportedVersions = { "1.60.1.69913", "1.60.1.69977" };
+        public const string ExpectedVersion = "1.60.1.70009";   // build con el que se MIDIERON las claves
+        public static readonly string[] SupportedVersions = { "1.60.1.69913", "1.60.1.69977", "1.60.1.70009" };
 
-        // Las 12 claves del almacen, medidas el 2026-09-20 y reverificadas en 69977 el 2026-09-23.
+        // Las 12 claves del almacen, medidas el 2026-09-20 y reverificadas en 69977 (2026-09-23) y 70009 (2026-09-25).
         // Entrada = u32 id + 32 B clave + flag + 7F 00 00.
         static readonly string[] KnownKeys = {
             "9B0671C815DFF513BFD4A2B26AE1F84EC9106841B2FB620DB65F6ADE7C21AD06", // 1  ancla de busqueda (nunca se toca)
