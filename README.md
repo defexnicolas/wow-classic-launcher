@@ -27,6 +27,26 @@ Para que no tengas que fiarte de nosotros:
 - Puedes compilarlo tú: `build.cmd` usa el compilador de C# que ya trae Windows. No hace falta instalar nada.
 - Es .NET sin ofuscar: cualquier descompilador (ILSpy, dnSpy) muestra el mismo código que hay aquí.
 
+## Linux (Proton / Wine)
+
+El `.exe` es solo para Windows. En Linux usa [`linux/classic-forever-linux.py`](linux/classic-forever-linux.py)
+(Python 3, sin dependencias): hace lo mismo desde fuera del juego.
+
+**Steam + Proton**
+1. Descarga el script: `curl -LO https://raw.githubusercontent.com/defexnicolas/wow-classic-launcher/main/linux/classic-forever-linux.py`
+2. En Steam: *Añadir un juego → Añadir un juego ajeno a Steam* → elige **`WowB.exe`** (no Battle.net).
+3. Propiedades del juego → *Compatibilidad*: fuerza Proton. *General → Opciones de lanzamiento*:
+   ```
+   python3 /ruta/completa/classic-forever-linux.py %command%
+   ```
+4. Juega desde Steam. El script escribe el portal, abre el juego y pone la clave; su registro queda en
+   `_classic_beta_/Logs/launcher-linux.log`.
+
+**Wine a mano**: `python3 classic-forever-linux.py wine "/ruta/_classic_beta_/WowB.exe"`.
+
+Como el script abre el juego, Linux le deja acceder a su memoria sin `sudo`. Para engancharse a un juego ya abierto:
+`sudo python3 classic-forever-linux.py --pid <PID> --game-dir "/ruta/_classic_beta_"`.
+
 ## Qué hace (y qué no)
 
 Al pulsar **JUGAR**:

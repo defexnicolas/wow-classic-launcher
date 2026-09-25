@@ -45,4 +45,4 @@ jobs:
 
           Windows mostrará "Windows protegió su PC" porque el ejecutable no está firmado: pulsa **Más información → Ejecutar de todas formas**. Ver el README.
           "@
-          gh release create $env:GITHUB_REF_NAME dist/ClassicForever.exe dist/ClassicForever.exe.sha256 --title "Classic Forever Launcher $env:GITHUB_REF_NAME" --notes $notes
+          gh release create $env:GITHUB_REF_NAME dist/ClassicForever.exe dist/ClassicForever.exe.sha256 linux/classic-forever-linux.py --title "Classic Forever Launcher $env:GITHUB_REF_NAME" --notes $notes
