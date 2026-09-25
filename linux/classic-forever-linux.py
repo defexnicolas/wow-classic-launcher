@@ -26,7 +26,6 @@ Solo biblioteca estandar de Python 3.
 import argparse
 import datetime
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -141,20 +140,40 @@ def is_descendant(pid, ancestor):
     return False
 
 
-WINE_EXE = re.compile(r'^[A-Za-z]:\\(?:[^\x00]*\\)?' + re.escape(EXE_NAME) + r'(?:\s|$)', re.I)
+def maps_exe(pid):
+    """True si el proceso tiene WowB.exe cargado (bajo Wine la imagen del .exe se mapea desde el fichero)."""
+    try:
+        with open(f'/proc/{pid}/maps') as f:
+            return any(line.rstrip().lower().endswith('/' + EXE_NAME.lower()) for line in f)
+    except OSError:
+        return False
 
 
 def find_clients(root=None):
-    """PIDs del cliente. Bajo Wine/Proton el proceso real lleva como argv[0] la ruta de Windows (Z:\\...\\WowB.exe);
-    los intermediarios (script proton, contenedor de Steam) llevan la ruta de Linux y no cuentan."""
+    """PIDs del cliente: procesos que tienen WowB.exe cargado en memoria. Los intermediarios (script proton,
+    contenedor de Steam, lanzadores) solo lo nombran en la linea de ordenes. Primero los descendientes de 'root'."""
     found = []
     for d in os.listdir('/proc'):
         if not d.isdigit():
             continue
         pid = int(d)
-        if WINE_EXE.match(cmdline(pid)) and (root is None or is_descendant(pid, root)):
+        if pid != os.getpid() and maps_exe(pid):
             found.append(pid)
-    return sorted(found, key=rss, reverse=True)
+    return sorted(found, key=lambda p: (not (root and is_descendant(p, root)), -rss(p)))
+
+
+def describe_candidates():
+    """Para el registro: procesos que mencionan WowB.exe (ayuda a entender lanzadores raros)."""
+    out = []
+    for d in os.listdir('/proc'):
+        if d.isdigit() and EXE_NAME.lower() in cmdline(int(d)).lower() and int(d) != os.getpid():
+            pid = int(d)
+            try:
+                exe = os.readlink(f'/proc/{pid}/exe')
+            except OSError:
+                exe = '?'
+            out.append(f'pid {pid} ppid {parent(pid)} exe {exe} mapea_exe={maps_exe(pid)} cmd {cmdline(pid)[:160]}')
+    return out or ['(ningun proceso menciona WowB.exe)']
 
 
 def rss(pid):
@@ -277,6 +296,9 @@ def ready():
     notify('Classic Forever: listo', 'Si el primer intento de entrar al reino fallo, vuelve a entrar sin cerrar el juego.')
 
 
+GAME_DIR = None
+
+
 def watch(pid):
     store, ever, waiting_said = None, False, False
     while True:
@@ -299,8 +321,11 @@ def watch(pid):
         try:
             found, info = find_stores(pid)
         except PermissionError:
-            say('Linux no me deja leer la memoria del juego. Lanza el juego a traves de este script '
-                '(opciones de lanzamiento de Steam: python3 /ruta/classic-forever-linux.py %command%) o usa sudo con --pid.', 'red')
+            me = os.path.abspath(sys.argv[0])
+            gd = f' --game-dir "{GAME_DIR}"' if GAME_DIR else ''
+            say('Linux no me deja leer la memoria del juego (el juego no es hijo de este script y '
+                'kernel.yama.ptrace_scope lo impide). Deja el juego abierto y ejecuta en otra terminal:', 'red')
+            say(f'    sudo python3 "{me}" --pid {pid}{gd}', 'yellow')
             return 1
         if len(found) == 1:
             store, state = found[0]
@@ -337,7 +362,8 @@ def main():
     a = ap.parse_args()
     cmd = [c for c in a.command if c != '--']
 
-    game_dir = a.game_dir or game_dir_from_command(cmd)
+    global GAME_DIR
+    game_dir = GAME_DIR = a.game_dir or game_dir_from_command(cmd)
     if game_dir:
         os.makedirs(os.path.join(game_dir, 'Logs'), exist_ok=True)
         LOG_FILE = os.path.join(game_dir, 'Logs', 'launcher-linux.log')
@@ -355,17 +381,22 @@ def main():
         say('Abriendo el juego...', 'cyan')
         child = subprocess.Popen(cmd)
         pid = None
-        for _ in range(180):
+        # Muchos lanzadores (proton run, lutris, bottles) abren el juego y terminan enseguida: se sigue esperando.
+        for i in range(180):
             time.sleep(1)
             clients = find_clients(child.pid)
             if clients:
                 pid = clients[0]
                 break
-            if child.poll() is not None and not find_clients():
-                say('El comando del juego termino sin abrir WowB.exe.', 'red')
-                return 1
+            if i == 20:
+                say('Todavia no veo WowB.exe. Procesos que lo mencionan:', 'yellow')
+                for line in describe_candidates():
+                    say('  ' + line, 'dim')
         if pid is None:
-            say('El juego no arranco en 3 minutos.', 'red')
+            say('No encontre el juego en 3 minutos. Si ya esta abierto, prueba: sudo python3 '
+                'classic-forever-linux.py --pid <PID> --game-dir <carpeta>', 'red')
+            for line in describe_candidates():
+                say('  ' + line, 'dim')
             return 1
     else:
         clients = find_clients()
@@ -374,6 +405,8 @@ def main():
             return 1
         pid = clients[0]
         say(f'El juego ya estaba abierto (PID {pid}): me engancho a el.', 'cyan')
+    if not is_descendant(pid, os.getpid()) and os.geteuid() != 0:
+        say('Aviso: el juego no lo abrio este script; si Linux no me deja leer su memoria, usa sudo.', 'yellow')
 
     say(f'Juego en PID {pid}. Haz login y entra al reino.', 'cyan')
     try:
