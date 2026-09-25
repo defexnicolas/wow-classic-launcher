@@ -31,6 +31,18 @@ namespace ForeverLauncher
         public const string ExeName = "WowB.exe";
         public const string ExpectedVersion = "1.60.1.70009";   // build con el que se MIDIERON las claves
         public static readonly string[] SupportedVersions = { "1.60.1.69913", "1.60.1.69977", "1.60.1.70009" };
+        // Builds que el servidor anuncia en status.json (clientBuilds): se suman a los de arriba sin sacar launcher nuevo.
+        public static volatile string[] FeedVersions = new string[0];
+        public static bool IsSupported(string version)
+        {
+            return Array.IndexOf(SupportedVersions, version) >= 0 || Array.IndexOf(FeedVersions, version) >= 0;
+        }
+        public static string SupportedList()
+        {
+            var all = new System.Collections.Generic.List<string>(SupportedVersions);
+            foreach (var v in FeedVersions) if (!all.Contains(v)) all.Add(v);
+            return string.Join(", ", all.ToArray());
+        }
 
         // Las 12 claves del almacen, medidas el 2026-09-20 y reverificadas en 69977 (2026-09-23) y 70009 (2026-09-25).
         // Entrada = u32 id + 32 B clave + flag + 7F 00 00.
@@ -79,8 +91,8 @@ namespace ForeverLauncher
             string exe = Path.Combine(dir, ExeName);
             if (!File.Exists(exe)) return new Msg(MsgKind.Warn, "dir.noexe");
             version = FileVersionInfo.GetVersionInfo(exe).FileVersion;
-            if (Array.IndexOf(SupportedVersions, version) < 0)
-                return new Msg(MsgKind.Warn, "dir.badbuild", version, string.Join(", ", SupportedVersions));
+            if (!IsSupported(version))
+                return new Msg(MsgKind.Warn, "dir.badbuild", version, SupportedList());
             return null;
         }
 

@@ -36,6 +36,7 @@ namespace ForeverLauncher
         public string LatestLauncher, LauncherUrl;
         public List<FeedEntry> News = new List<FeedEntry>();
         public List<FeedEntry> Links = new List<FeedEntry>();
+        public List<string> ClientBuilds = new List<string>();   // builds admitidos anunciados por el servidor
     }
 
     public static class StatusClient
@@ -114,6 +115,14 @@ namespace ForeverLauncher
                     var d = o as Dictionary<string, object>;
                     if (d != null && Str(d, "label") != null && Str(d, "url") != null) s.Links.Add(new FeedEntry(d));
                 }
+                // Builds del cliente que el servidor ya admite: un build nuevo de Blizzard con las MISMAS claves no
+                // necesita un launcher nuevo (solo se aceptan builds de Forever 1.60.x.xxxxx; las claves siguen en el exe).
+                foreach (var o in List(root, "clientBuilds"))
+                {
+                    var v = o as string;
+                    if (v != null && System.Text.RegularExpressions.Regex.IsMatch(v, @"^1\.60\.\d+\.\d{5}$")) s.ClientBuilds.Add(v);
+                }
+                if (s.ClientBuilds.Count > 0) Patcher.FeedVersions = s.ClientBuilds.ToArray();
             }
             catch { }
         }
